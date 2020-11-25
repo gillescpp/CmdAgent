@@ -1,0 +1,24 @@
+{
+ "ListenPort": 8800,
+ "APIKey": "b67df56e-614b-08d5-9dc4-a76da6891cb4",
+ "LogStdConfig": {
+  "MaxSizeMB": 20,
+  "MaxBackups": 1,
+  "Compress": false,
+  "LogFolder": "D:\\SOURCES\\CmdAgent\\log"
+ },
+ "LogTaskConfig": {
+  "_default_": {
+   "MaxSizeMB": 20,
+   "MaxBackups": 3,
+   "Compress": false,
+   "LogFolder": "D:\\SOURCES\\CmdAgent\\log"
+  },
+  "test": {
+   "MaxSizeMB": 3,
+   "MaxBackups": 3,
+   "Compress": true,
+   "LogFolder": "D:\\SOURCES\\CmdAgent\\log"
+  }
+ }
+}

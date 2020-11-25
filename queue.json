@@ -1,0 +1,17 @@
+{
+ "cnt": 263,
+ "qtasks": {
+  "263": {
+   "id": 263,
+   "task_type": "CmdTask",
+   "task": "{\"Cmd\":\"ping.exe\",\"Args\":[\"localhost\",\"-n\",\"5\"],\"Timeout\":10000000000,\"StartIn\":\"\"}",
+   "status": "TASK_DONE",
+   "last_activity": "2020-11-21T14:51:47.8832392+01:00",
+   "started_at": "2020-11-21T14:51:43.7812052+01:00",
+   "terminated_at": "2020-11-21T14:51:47.8832392+01:00",
+   "result_ok": true,
+   "result_info": "",
+   "log_config": "_default_"
+  }
+ }
+}
