@@ -24,6 +24,10 @@ func PanicHandler(w http.ResponseWriter, r *http.Request, err interface{}) {
 
 //Ping handler test connectivité
 func Ping(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	//si clé api fournie (ping utilisé pour tester la validité de la clé), on la valide et répond "OK" si c'est le cas
+	if CheckAutorisation(r) == nil {
+		fmt.Fprintf(w, "OK")
+	}
 	fmt.Fprintf(w, "pong")
 }
 
@@ -161,7 +165,7 @@ func TaskGet(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		if tskResp.Terminated {
 			tskResp.Duration = tsk.TerminatedAt.Sub(tsk.StartedAt).Milliseconds() //terminé : tps d'exec en ms
 		} else if tsk.Status == task.TaskRunning {
-			tskResp.Duration = time.Now().Sub(tsk.StartedAt).Milliseconds() //en cours, tps d'exec jusqu'ici, en ms
+			tskResp.Duration = time.Since(tsk.StartedAt).Milliseconds() //en cours, tps d'exec jusqu'ici, en ms
 		}
 	}
 

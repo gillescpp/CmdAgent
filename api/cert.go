@@ -22,7 +22,7 @@ func GenerateSelfSignedCert() (string, string, error) {
 	//chemin appli
 	ex, err := os.Executable()
 	if err != nil {
-		return "", "", fmt.Errorf("Exec path : %w", err)
+		return "", "", fmt.Errorf("exec path : %w", err)
 	}
 	cf := filepath.Dir(ex)
 	cf = filepath.Join(cf, "cert")
@@ -50,7 +50,7 @@ func GenerateSelfSignedCert() (string, string, error) {
 	//clé
 	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
-		return "", "", fmt.Errorf("Failed to generate private key: %w", err)
+		return "", "", fmt.Errorf("failed to generate private key: %w", err)
 	}
 
 	// ECDSA, ED25519 and RSA subject keys should have the DigitalSignature
@@ -59,7 +59,7 @@ func GenerateSelfSignedCert() (string, string, error) {
 	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
 	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
 	if err != nil {
-		return "", "", fmt.Errorf("Failed to generate serial number: %w", err)
+		return "", "", fmt.Errorf("failed to generate serial number: %w", err)
 	}
 
 	template := x509.Certificate{
@@ -97,29 +97,29 @@ func GenerateSelfSignedCert() (string, string, error) {
 	//cert.pem
 	certOut, err := os.Create(certPath)
 	if err != nil {
-		return "", "", fmt.Errorf("Failed to open cert.pem for writing: %w", err)
+		return "", "", fmt.Errorf("failed to open cert.pem for writing: %w", err)
 	}
 	if err := pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes}); err != nil {
-		return "", "", fmt.Errorf("Failed to write data to cert.pem: %w", err)
+		return "", "", fmt.Errorf("failed to write data to cert.pem: %w", err)
 	}
 	if err := certOut.Close(); err != nil {
-		return "", "", fmt.Errorf("Error closing cert.pem: %w", err)
+		return "", "", fmt.Errorf("error closing cert.pem: %w", err)
 	}
 
 	//key.pem
 	keyOut, err := os.OpenFile(keyPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
-		return "", "", fmt.Errorf("Failed to generate serial number: %w", err)
+		return "", "", fmt.Errorf("failed to generate serial number: %w", err)
 	}
 	privBytes, err := x509.MarshalPKCS8PrivateKey(priv)
 	if err != nil {
-		return "", "", fmt.Errorf("Unable to marshal private key: %w", err)
+		return "", "", fmt.Errorf("unable to marshal private key: %w", err)
 	}
 	if err := pem.Encode(keyOut, &pem.Block{Type: "PRIVATE KEY", Bytes: privBytes}); err != nil {
-		return "", "", fmt.Errorf("Failed to write data to key.pem: %w", err)
+		return "", "", fmt.Errorf("failed to write data to key.pem: %w", err)
 	}
 	if err := keyOut.Close(); err != nil {
-		return "", "", fmt.Errorf("Error closing key.pem: %w", err)
+		return "", "", fmt.Errorf("error closing key.pem: %w", err)
 	}
 	return certPath, keyPath, nil
 }
