@@ -27,6 +27,7 @@ func Ping(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	//si clé api fournie (ping utilisé pour tester la validité de la clé), on la valide et répond "OK" si c'est le cas
 	if CheckAutorisation(r) == nil {
 		fmt.Fprintf(w, "OK")
+		return
 	}
 	fmt.Fprintf(w, "pong")
 }
