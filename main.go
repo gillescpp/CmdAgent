@@ -74,7 +74,7 @@ func main() {
 	strListenOn := ":" + strconv.Itoa(restPort)
 	api.APIKey = Config.APIKey
 	if Config.APIKey == "" {
-		slog.To("").Fatalf("API key no définie")
+		slog.To("").Fatalf("API key non définie")
 	}
 	slog.To("").Println("Ecoute sur https", strListenOn, "...")
 
@@ -107,8 +107,6 @@ func main() {
 		defer cancel()
 		//arret serveur web
 		err := server.Shutdown(ctx)
-		//arret ticket maj cache
-		//tickerCache.Stop()
 		if err != nil {
 			slog.To("").Println("server.Shutdown:", err)
 		}

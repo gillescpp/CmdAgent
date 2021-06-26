@@ -19,8 +19,8 @@ var Queue TQueue
 // Constantes
 const (
 	queueFile        string        = "queue.json"     //fichier persitance queue en cours
-	taskInfoLifeSpan time.Duration = 30 * time.Minute //durée de rentention d'info sur les taches traités
-	taskTimeOut      time.Duration = 10 * time.Minute //délai max de traitement pour une tache new
+	taskInfoLifeSpan time.Duration = 60 * time.Minute //durée de rentention d'info sur les taches traités
+	taskTimeOut      time.Duration = 15 * time.Minute //délai max de traitement pour une tache new
 )
 
 // Statut d'un tache
@@ -92,14 +92,14 @@ func (c *TTask) UnmarshalJSON(data []byte) error {
 		var t CmdTask
 		err := json.Unmarshal([]byte(c2.TaskSerialised), &t)
 		if err != nil {
-			return fmt.Errorf("Unmarshal CmdTask : %w", err)
+			return fmt.Errorf("unmarshal CmdTask : %w", err)
 		}
 		c2.Task = t
 	} else if c2.TaskType == "URLCheckTask" {
 		var t URLCheckTask
 		err := json.Unmarshal([]byte(c2.TaskSerialised), &t)
 		if err != nil {
-			return fmt.Errorf("Unmarshal URLCheckTask : %w", err)
+			return fmt.Errorf("unmarshal URLCheckTask : %w", err)
 		}
 		c2.Task = t
 	} else {
@@ -184,7 +184,7 @@ func (c *TQueue) Init() error {
 	//queue à coté de l'exe
 	ex, err := os.Executable()
 	if err != nil {
-		return fmt.Errorf("Exec path : %w", err)
+		return fmt.Errorf("exec path : %w", err)
 	}
 	exePath := filepath.Dir(ex)
 	c.qPath = filepath.Join(exePath, queueFile)
@@ -204,7 +204,7 @@ func (c *TQueue) Init() error {
 	}
 	err = json.Unmarshal(buffer, c)
 	if err != nil {
-		return fmt.Errorf("Unmarshal %s : %w", c.qPath, err)
+		return fmt.Errorf("unmarshal %s : %w", c.qPath, err)
 	}
 
 	//purge queue

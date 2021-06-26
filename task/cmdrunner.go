@@ -25,7 +25,7 @@ type CmdTask struct {
 //CheckValid retourne une erreur si la tache semble irrealisable
 func (c CmdTask) CheckValid() error {
 	if c.Cmd == "" {
-		return fmt.Errorf("Cmd emty")
+		return fmt.Errorf("cmd emty")
 	}
 	//check présence app
 	_, err := exec.LookPath(c.Cmd)
