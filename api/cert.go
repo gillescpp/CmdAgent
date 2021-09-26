@@ -65,7 +65,7 @@ func GenerateSelfSignedCert() (string, string, error) {
 	template := x509.Certificate{
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
-			Organization: []string{"CmdAgen SelfCert"},
+			Organization: []string{"CmdAgent SelfCert"},
 		},
 		NotBefore: notBefore,
 		NotAfter:  notAfter,
