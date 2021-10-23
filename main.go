@@ -71,12 +71,17 @@ func main() {
 
 	//Mise en écoute de l'interface REST
 	restPort := Config.ListenPort
+	bNoTLS := Config.NoTLS
 	strListenOn := ":" + strconv.Itoa(restPort)
 	api.APIKey = Config.APIKey
 	if Config.APIKey == "" {
 		slog.To("").Fatalf("API key non définie")
 	}
-	slog.To("").Println("Ecoute sur https", strListenOn, "...")
+	if bNoTLS {
+		slog.To("").Println("Ecoute sur http", strListenOn, "...")
+	} else {
+		slog.To("").Println("Ecoute sur https", strListenOn, "...")
+	}
 
 	//point d'entrée du ws
 	router := httprouter.New()
@@ -113,5 +118,10 @@ func main() {
 	}()
 
 	//lancement du serveur web
-	slog.To("").Fatal(server.ListenAndServeTLS(cert, key))
+	if bNoTLS {
+		slog.To("").Fatal(server.ListenAndServe())
+	} else {
+		slog.To("").Fatal(server.ListenAndServeTLS(cert, key))
+	}
+
 }

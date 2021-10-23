@@ -39,6 +39,7 @@ func (c *AppConfigLogStorage) normalise() {
 type AppConfig struct {
 	ListenPort int    //port d'ecoute
 	APIKey     string //api key a fournir
+	NoTLS      bool
 
 	LogStdConfig  *AppConfigLogStorage            //config standard pour les logs
 	LogTaskConfig map[string]*AppConfigLogStorage //config task
@@ -65,6 +66,7 @@ func InitConfig() error {
 	//config par defaut
 	defCfg := AppConfig{
 		ListenPort: 8800,
+		NoTLS:      false,
 		APIKey:     uuid,
 		LogStdConfig: &AppConfigLogStorage{
 			MaxSizeMB:  20,
