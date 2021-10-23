@@ -3,7 +3,6 @@ package task
 import (
 	"context"
 	"fmt"
-	"io"
 	"log"
 	"os/exec"
 	"strconv"
@@ -35,20 +34,6 @@ func (c CmdTask) CheckValid() error {
 	return nil
 }
 
-//tracewriter est un writer intermédiaire pour tracer la sortie de la commande lancé
-type tracewriter struct {
-	l      *log.Logger
-	prefix string
-}
-
-func (c tracewriter) Write(p []byte) (n int, err error) {
-	c.l.Println(c.prefix, string(p))
-	return len(p), nil
-}
-
-//ensure we always implement Tasker
-var _ io.Writer = (*tracewriter)(nil)
-
 //Run lance la tache
 func (c CmdTask) Run(logto *log.Logger) (bool, string) {
 	//prepa commande avec sans timeout
@@ -72,16 +57,8 @@ func (c CmdTask) Run(logto *log.Logger) (bool, string) {
 	}
 
 	//les remonté (stdout et err) de l'exe sont tracé dans le log assigné
-	two := tracewriter{
-		l:      logto,
-		prefix: "[app-stdout]",
-	}
-	twe := tracewriter{
-		l:      logto,
-		prefix: "[app-stderr]",
-	}
-	cmd.Stdout = two
-	cmd.Stderr = twe
+	cmd.Stdout = logto.Writer()
+	cmd.Stderr = logto.Writer()
 
 	//appel bloquant :
 	dtStart := time.Now()
