@@ -2,6 +2,8 @@ package task
 
 import (
 	"CmdAgent/slog"
+	"bytes"
+	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -18,9 +20,9 @@ var Queue TQueue
 
 // Constantes
 const (
-	queueFile        string        = "queue.json"     //fichier persitance queue en cours
-	taskInfoLifeSpan time.Duration = 60 * time.Minute //durée de rentention d'info sur les taches traités
-	taskTimeOut      time.Duration = 15 * time.Minute //délai max de traitement pour une tache new
+	queueFile               string        = "queue.json"     //fichier persitance queue en cours
+	DefaultTaskInfoLifeSpan time.Duration = 60 * time.Minute //durée de rentention d'info sur les taches traités
+	DefaultTaskTimeOut      time.Duration = 15 * time.Minute //délai max de traitement pour une tache new
 )
 
 // Statut d'un tache
@@ -45,6 +47,7 @@ type Tasker interface {
 type TTask struct {
 	ID             int64     `json:"id"`            //id tache
 	Task           Tasker    `json:"-"`             //tache à executer
+	TaskUnic       string    `json:"-"`             //versio serialisé pour controle non exec tache identique en simultanée
 	TaskType       string    `json:"task_type"`     //typage tache
 	TaskSerialised string    `json:"task"`          //json tache avec ses infos spécifique (persistance disque)
 	Status         string    `json:"status"`        //status de la tache
@@ -77,6 +80,13 @@ func (c *TTask) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&c2)
 }
 
+// taskStr : retourne une version sérialisé d'un tache
+func taskStr(t Tasker) string {
+	var b bytes.Buffer
+	gob.NewEncoder(&b).Encode(t)
+	return b.String()
+}
+
 // UnmarshalJSON : (Unmarshaler interface) Traitement des champs soumis a unmarshaling spec
 func (c *TTask) UnmarshalJSON(data []byte) error {
 	var err error
@@ -103,14 +113,14 @@ func (c *TTask) UnmarshalJSON(data []byte) error {
 		}
 		c2.Task = t
 	} else {
-		return fmt.Errorf("TaskType %v unknown", c2.TaskType)
+		return fmt.Errorf("taskType %v unknown", c2.TaskType)
 	}
 
 	*c = TTask(c2)
 	return nil
 }
 
-// TypeIsValid retourne true si le type de tache fourni est connnu
+// TypeIsValid retourne true si le type de tache fourni est connu
 func TypeIsValid(taskType string) bool {
 	ok := false
 	switch taskType {
@@ -124,10 +134,12 @@ func TypeIsValid(taskType string) bool {
 
 //TQueue est la todo liste en cours
 type TQueue struct {
-	mu     sync.Mutex       `json:"-"`      //accés exclusif
-	Cnt    int64            `json:"cnt"`    //id tache
-	Qtasks map[int64]*TTask `json:"qtasks"` //tableau des taches
-	qPath  string           `json:"-"`      //fichier persistance
+	mu               sync.Mutex       `json:"-"`      //accés exclusif
+	Cnt              int64            `json:"cnt"`    //id tache
+	Qtasks           map[int64]*TTask `json:"qtasks"` //tableau des taches
+	qPath            string           `json:"-"`      //fichier persistance
+	taskInfoLifeSpan time.Duration    `json:"-"`      //durée de rentention d'info sur les taches traités
+	taskTimeOut      time.Duration    `json:"-"`      //délai max de traitement pour une tache new
 }
 
 //save persitance sur disque de la queue
@@ -137,11 +149,11 @@ func (c *TQueue) save() error {
 
 	buffer, err := json.MarshalIndent(c, "", " ")
 	if err != nil {
-		return fmt.Errorf("MarshalIndent queue : %w", err)
+		return fmt.Errorf("marshalIndent queue : %w", err)
 	}
 	err = ioutil.WriteFile(c.qPath, buffer, 0644)
 	if err != nil {
-		return fmt.Errorf("WriteFile queue : %w", err)
+		return fmt.Errorf("writeFile queue : %w", err)
 	}
 	return nil
 }
@@ -152,13 +164,26 @@ func (c *TQueue) Add(task Tasker, logCfg string) (int64, error) {
 		logCfg = "_default_"
 	}
 
+	//pas de rexec d'une tache identique déja en cours
+	Ident := taskStr(task)
+
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	//test anti doublon, si la déja est déja en file (new ou en cours d'exec)
+	//on retourne directement son numero
+	for i := range c.Qtasks {
+		if c.Qtasks[i].TaskUnic == Ident && (c.Qtasks[i].Status == TaskNew || c.Qtasks[i].Status == TaskRunning) {
+			return c.Qtasks[i].ID, nil
+		}
+	}
+
+	//ajout de la nouvelle tache
 	c.Cnt++
 	c.Qtasks[c.Cnt] = &TTask{
 		ID:           c.Cnt,
 		Task:         task,
+		TaskUnic:     Ident,
 		Status:       TaskNew,
 		LastActivity: time.Now(),
 		TaskType:     reflect.TypeOf(task).Name(),
@@ -177,9 +202,18 @@ func (c *TQueue) Add(task Tasker, logCfg string) (int64, error) {
 }
 
 // Init init queue persisté
-func (c *TQueue) Init() error {
+func (c *TQueue) Init(taskInfoLifeSpan, taskTimeOut time.Duration) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
+	c.taskInfoLifeSpan = taskInfoLifeSpan
+	c.taskTimeOut = taskTimeOut
+	if c.taskInfoLifeSpan <= 0 {
+		c.taskInfoLifeSpan = DefaultTaskInfoLifeSpan
+	}
+	if c.taskTimeOut <= 0 {
+		c.taskTimeOut = DefaultTaskTimeOut
+	}
 
 	//queue à coté de l'exe
 	ex, err := os.Executable()
@@ -200,7 +234,7 @@ func (c *TQueue) Init() error {
 	//deserialise
 	buffer, err := ioutil.ReadFile(c.qPath)
 	if err != nil {
-		return fmt.Errorf("ReadFile %s : %w", c.qPath, err)
+		return fmt.Errorf("readFile %s : %w", c.qPath, err)
 	}
 	err = json.Unmarshal(buffer, c)
 	if err != nil {
@@ -209,6 +243,11 @@ func (c *TQueue) Init() error {
 
 	//purge queue
 	c.purge(true)
+
+	//calcul des version textes
+	for i := range c.Qtasks {
+		c.Qtasks[i].TaskUnic = taskStr(c.Qtasks[i].Task)
+	}
 
 	return nil
 }
@@ -223,13 +262,13 @@ func (c *TQueue) purge(start bool) {
 			c.Qtasks[k].LastActivity = time.Now()
 		}
 		//cas des news en attente depuis trop longtemps
-		if v.Status == TaskNew && time.Since(c.Qtasks[k].LastActivity) > taskTimeOut {
+		if v.Status == TaskNew && time.Since(c.Qtasks[k].LastActivity) > c.taskTimeOut {
 			c.Qtasks[k].Status = TaskAborted
 			c.Qtasks[k].LastActivity = time.Now()
 		}
 
 		//info tache conservé taskInfoLifeSpan
-		if v.Status != TaskNew && v.Status != TaskRunning && time.Since(c.Qtasks[k].LastActivity) > taskInfoLifeSpan {
+		if v.Status != TaskNew && v.Status != TaskRunning && time.Since(c.Qtasks[k].LastActivity) > c.taskInfoLifeSpan {
 			delete(c.Qtasks, k)
 		}
 	}

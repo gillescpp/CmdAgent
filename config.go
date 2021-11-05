@@ -1,12 +1,14 @@
 package main
 
 import (
+	"CmdAgent/task"
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 //Config instance globale config
@@ -43,6 +45,9 @@ type AppConfig struct {
 
 	LogStdConfig  *AppConfigLogStorage            //config standard pour les logs
 	LogTaskConfig map[string]*AppConfigLogStorage //config task
+
+	taskInfoLifeSpan time.Duration //durée de rentention d'info sur les taches traités
+	taskTimeOut      time.Duration //délai max de traitement pour une tache new
 }
 
 //InitConfig charge la config
@@ -58,16 +63,18 @@ func InitConfig() error {
 	//chemin appli
 	ex, err := os.Executable()
 	if err != nil {
-		return fmt.Errorf("Exec path : %w", err)
+		return fmt.Errorf("exec path : %w", err)
 	}
 	exePath := filepath.Dir(ex)
 	exeLogPath := filepath.Join(exePath, "log")
 
 	//config par defaut
 	defCfg := AppConfig{
-		ListenPort: 8800,
-		NoTLS:      false,
-		APIKey:     uuid,
+		ListenPort:       8800,
+		NoTLS:            false,
+		APIKey:           uuid,
+		taskInfoLifeSpan: task.DefaultTaskInfoLifeSpan,
+		taskTimeOut:      task.DefaultTaskTimeOut,
 		LogStdConfig: &AppConfigLogStorage{
 			MaxSizeMB:  20,
 			MaxBackups: 1,
@@ -99,11 +106,11 @@ func InitConfig() error {
 		//deserialise
 		buffer, err := ioutil.ReadFile(cfgPath)
 		if err != nil {
-			return fmt.Errorf("ReadFile %s : %w", cfgPath, err)
+			return fmt.Errorf("readFile %s : %w", cfgPath, err)
 		}
 		err = json.Unmarshal(buffer, &Config)
 		if err != nil {
-			return fmt.Errorf("Unmarshal %s : %w", cfgPath, err)
+			return fmt.Errorf("unmarshal %s : %w", cfgPath, err)
 		}
 	}
 
@@ -117,7 +124,7 @@ func InitConfig() error {
 	if Config.LogStdConfig.LogFolder != "" { //destination vide = stdout
 		err = os.MkdirAll(Config.LogStdConfig.LogFolder, os.ModePerm)
 		if err != nil {
-			return fmt.Errorf("Make dir %s : %w", Config.LogStdConfig.LogFolder, err)
+			return fmt.Errorf("make dir %s : %w", Config.LogStdConfig.LogFolder, err)
 		}
 	}
 	if Config.LogTaskConfig == nil {
@@ -133,7 +140,7 @@ func InitConfig() error {
 		if v.LogFolder != "" {
 			err = os.MkdirAll(v.LogFolder, os.ModePerm)
 			if err != nil {
-				return fmt.Errorf("Make dir %s : %w", v.LogFolder, err)
+				return fmt.Errorf("make dir %s : %w", v.LogFolder, err)
 			}
 		}
 
@@ -143,11 +150,11 @@ func InitConfig() error {
 	if bToUpdate {
 		buffer, err := json.MarshalIndent(&Config, "", " ")
 		if err != nil {
-			return fmt.Errorf("MarshalIndent %s : %w", cfgPath, err)
+			return fmt.Errorf("marshalIndent %s : %w", cfgPath, err)
 		}
 		err = ioutil.WriteFile(cfgPath, buffer, 0644)
 		if err != nil {
-			return fmt.Errorf("WriteFile %s : %w", cfgPath, err)
+			return fmt.Errorf("writeFile %s : %w", cfgPath, err)
 		}
 	}
 

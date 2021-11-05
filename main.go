@@ -51,7 +51,7 @@ func main() {
 
 	// init queue taches
 	slog.To("").Println("Init task queue...")
-	err = task.Queue.Init()
+	err = task.Queue.Init(Config.taskInfoLifeSpan, Config.taskTimeOut)
 	if err != nil {
 		slog.To("").Fatalf("Queue.Init %v", err)
 	}
